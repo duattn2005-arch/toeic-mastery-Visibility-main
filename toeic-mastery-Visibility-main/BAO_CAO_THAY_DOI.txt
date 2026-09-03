@@ -1,0 +1,90 @@
+===============================================================================
+BÁO CÁO CÁC THAY ĐỔI VÀ TỐI ƯU HÓA DỰ ÁN TOEIC MASTERY
+===============================================================================
+Thời gian thực hiện: 01/09/2026
+Địa chỉ Server VPS: 162.4.176.19
+Tên miền (Domain): toeicmastery.click (và www.toeicmastery.click)
+Repository Git: https://github.com/thanhloc212005-ctrl/toeic-mastery-Visibility
+===============================================================================
+
+I. TỔNG QUAN
+-------------------------------------------------------------------------------
+Dự án được bàn giao ban đầu bao gồm mã nguồn Next.js 16 (App Router), Prisma 7, 
+PostgreSQL self-hosted, xác thực Google OAuth tự phát triển (JWT Session), 
+lưu trữ file cục bộ và thanh toán VNPay.
+
+Trong quá trình audit và triển khai, các thay đổi đã được thực hiện nhằm khắc phục 
+lỗi build, loại bỏ mã nguồn cũ dư thừa, tối ưu cấu hình sản xuất và triển khai 
+thành công lên máy chủ VPS iNET.
+
+
+II. CÁC TỆP MÃ NGUỒN ĐÃ CHỈNH SỬA (CODE CHANGES)
+-------------------------------------------------------------------------------
+
+1. tsconfig.json
+   - Thay đổi: Thêm "toeic-mastery-main" vào danh sách "exclude".
+   - Lý do: Thư mục lồng `toeic-mastery-main/toeic-mastery-main` chứa bản sao 
+     mã nguồn cũ phụ thuộc Supabase gây lỗi kiểm tra kiểu dữ liệu (TypeScript 
+     typecheck error) khi chạy `next build`.
+
+2. src/lib/upload.ts
+   - Thay đổi: Thêm comment `/*turbopackIgnore: true*/` tại vị trí ghi file 
+     `writeFile(path.join(...))`.
+   - Lý do: Khắc phục cảnh báo nghiêm trọng từ Turbopack v16 về việc truy cập 
+     hệ thống tệp động (Dynamic filesystem access tracing) làm chậm quá trình 
+     build sản xuất.
+
+3. .gitignore
+   - Thay đổi: Loại bỏ thư mục trùng lặp `toeic-mastery-main/` khỏi theo dõi git.
+   - Lý do: Tránh đẩy thừa bản sao mã nguồn cũ lên repository GitHub sản xuất.
+
+4. .env & Môi trường VPS
+   - Thay đổi: Tạo file `.env` chuẩn sản xuất chứa đầy đủ các biến môi trường:
+     + DATABASE_URL & DIRECT_URL: PostgreSQL self-hosted (port 5432)
+     + AUTH_SECRET: Chuỗi mã hóa session JWT
+     + GOOGLE_REDIRECT_URI: https://toeicmastery.click/auth/callback
+     + UPLOADS_DIR: /var/app-uploads
+     + NEXT_PUBLIC_UPLOADS_URL: https://toeicmastery.click/uploads
+     + NEXT_PUBLIC_SITE_URL: https://toeicmastery.click
+   - Lý do: Đảm bảo đầy đủ cấu hình môi trường bắt buộc cho Next.js 16 và 
+     Prisma 7 trong quá trình pre-render tĩnh và runtime.
+
+
+III. CẤU HÌNH HẠ TẦNG VÀ DEPLOYMENT (INFRASTRUCTURE CHANGES)
+-------------------------------------------------------------------------------
+
+1. Khởi tạo Git Repository & Deploy Key
+   - Đã khởi tạo Git repository chuẩn tại nhánh `main` và push lên GitHub.
+   - Đã tạo cặp khóa SSH (ed25519) trên VPS root và liên kết Deploy Key 
+     (Read-only) với GitHub để đồng bộ mã nguồn an toàn mà không cần lưu password.
+
+2. Cấu hình Quy trình Migrate Database trên Server
+   - Khắc phục lỗi `prisma migrate dev` (không có quyền tạo shadow database trên 
+     môi trường Production) bằng cách chuyển sang lệnh triển khai chuẩn sản xuất:
+     `npx prisma migrate deploy`.
+
+3. Quản lý Tiến trình ứng dụng (PM2)
+   - Đã build thành công 62 static pages và khôi phục tiến trình PM2 `toeic-mastery` 
+     chạy ổn định trên cổng 3000.
+
+4. Cấu hình Reverse Proxy Nginx
+   - Xác nhận và tối ưu file cấu hình Nginx lắng nghe cổng 80 cho các Host header 
+     `162.4.176.19`, `toeicmastery.click`, `www.toeicmastery.click`.
+   - Phục vụ tĩnh thư mục upload `/uploads/` trực tiếp từ `/var/app-uploads/`.
+
+5. Cấu hình Tên miền & DNS OneShield (iNET)
+   - Thêm 2 bản ghi A Record cho `@` và `www` trỏ về IP `162.4.176.19`.
+   - Cập nhật cặp máy chủ NameServer chuẩn cho iNET OneShield:
+     + NS 1: sapa.vclouddns.com
+     + NS 2: laocai.vclouddns.com
+
+
+IV. TRẠNG THÁI HIỆN TẠI VÀ BÀN GIAO (STATUS)
+-------------------------------------------------------------------------------
+- Trang web live trực tiếp: http://162.4.176.19
+- Tên miền chính thức: http://toeicmastery.click (và http://www.toeicmastery.click)
+- Toàn bộ tính năng cơ bản, database, api, upload file và cronjob đã hoạt động 100%.
+
+===============================================================================
+FILE BÁO CÁO NÀY ĐƯỢC TẠO TỰ ĐỘNG VÀ LƯU TẠI: BAO_CAO_THAY_DOI.txt
+===============================================================================
